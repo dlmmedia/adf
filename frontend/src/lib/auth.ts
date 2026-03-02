@@ -51,6 +51,15 @@ export async function getMe(): Promise<AuthUser | null> {
   }
 }
 
+export async function demoLogin(): Promise<AuthUser> {
+  const res = await fetch("/api/auth/demo", {
+    method: "POST",
+    credentials: "include",
+  });
+  if (!res.ok) throw new Error("Demo login failed");
+  return res.json();
+}
+
 export async function logoutUser(): Promise<void> {
   await fetch(`${API_BASE}/api/auth/logout`, {
     method: "POST",

@@ -3,9 +3,9 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { motion } from "framer-motion";
-import { Brain, LogIn, Loader2 } from "lucide-react";
+import { Brain, LogIn, Loader2, Zap } from "lucide-react";
 import Link from "next/link";
-import { loginUser } from "@/lib/auth";
+import { loginUser, demoLogin } from "@/lib/auth";
 import { useAppStore } from "@/lib/store";
 
 export default function LoginPage() {
@@ -99,6 +99,37 @@ export default function LoginPage() {
               Sign in
             </button>
           </form>
+
+          <div className="relative my-5">
+            <div className="absolute inset-0 flex items-center">
+              <div className="w-full border-t border-white/10" />
+            </div>
+            <div className="relative flex justify-center text-xs">
+              <span className="px-2 bg-[#0a0a0a] text-white/30">or</span>
+            </div>
+          </div>
+
+          <button
+            type="button"
+            onClick={async () => {
+              setError("");
+              setLoading(true);
+              try {
+                const user = await demoLogin();
+                setUser(user);
+                router.push("/");
+              } catch (err: any) {
+                setError(err.message || "Demo login failed");
+              } finally {
+                setLoading(false);
+              }
+            }}
+            disabled={loading}
+            className="w-full flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg bg-white/[0.04] border border-white/10 hover:bg-white/[0.08] hover:border-white/20 disabled:opacity-50 disabled:cursor-not-allowed text-white/70 text-sm font-medium transition-colors"
+          >
+            <Zap className="w-4 h-4 text-purple-400" />
+            Try Demo Account
+          </button>
 
           <p className="text-sm text-white/40 text-center mt-5">
             Don&apos;t have an account?{" "}

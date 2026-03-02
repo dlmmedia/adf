@@ -1,0 +1,13 @@
+fastapi
+uvicorn[standard]
+python-multipart
+pymupdf
+openai
+pydantic
+pydantic-settings
+aiofiles
+sqlalchemy
+python-jose[cryptography]
+passlib[bcrypt]
+bcrypt==4.2.1
+email-validator

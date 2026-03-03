@@ -61,14 +61,15 @@ def set_token_cookie(response: Response, token: str) -> None:
         key=COOKIE_NAME,
         value=token,
         httponly=True,
-        samesite="lax",
+        samesite="none",
+        secure=True,
         max_age=ACCESS_TOKEN_EXPIRE_DAYS * 86400,
         path="/",
     )
 
 
 def clear_token_cookie(response: Response) -> None:
-    response.delete_cookie(key=COOKIE_NAME, path="/")
+    response.delete_cookie(key=COOKIE_NAME, path="/", samesite="none", secure=True)
 
 
 async def get_current_user(

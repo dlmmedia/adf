@@ -6,15 +6,18 @@ import { getMe } from "@/lib/auth";
 import { useAppStore } from "@/lib/store";
 
 function AuthLoader({ children }: { children: ReactNode }) {
-  const { setUser } = useAppStore();
+  const { setUser, setToken } = useAppStore();
   const [checked, setChecked] = useState(false);
 
   useEffect(() => {
     getMe().then((user) => {
-      if (user) setUser(user);
+      if (user) {
+        setUser(user);
+        if (user.token) setToken(user.token);
+      }
       setChecked(true);
     });
-  }, [setUser]);
+  }, [setUser, setToken]);
 
   if (!checked) {
     return (

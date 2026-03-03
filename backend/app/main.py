@@ -163,8 +163,10 @@ async def api_login(body: LoginRequest, response: Response, db: Session = Depend
 
 
 @app.get("/api/auth/me")
-async def api_me(user: User = Depends(get_current_user)):
-    return UserResponse(id=user.id, email=user.email)
+async def api_me(request: Request, user: User = Depends(get_current_user)):
+    from app.auth import _extract_token
+    token = _extract_token(request) or ""
+    return UserResponse(id=user.id, email=user.email, token=token)
 
 
 @app.post("/api/auth/logout")

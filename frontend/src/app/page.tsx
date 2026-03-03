@@ -48,7 +48,7 @@ export default function HomePage() {
         setError(err instanceof Error ? err.message : "Upload failed. Please try again.");
       }
     },
-    [router, setJobId]
+    [router, setJobId, token]
   );
 
   const handleLogout = useCallback(async () => {

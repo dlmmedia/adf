@@ -10,7 +10,7 @@ import { useAppStore } from "@/lib/store";
 
 export default function LoginPage() {
   const router = useRouter();
-  const { setUser } = useAppStore();
+  const { setUser, setToken } = useAppStore();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
@@ -23,6 +23,7 @@ export default function LoginPage() {
     try {
       const user = await loginUser(email, password);
       setUser(user);
+      if (user.token) setToken(user.token);
       router.push("/");
     } catch (err: any) {
       setError(err.message || "Login failed");
@@ -117,6 +118,7 @@ export default function LoginPage() {
               try {
                 const user = await demoLogin();
                 setUser(user);
+                if (user.token) setToken(user.token);
                 router.push("/");
               } catch (err: any) {
                 setError(err.message || "Demo login failed");

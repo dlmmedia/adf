@@ -10,7 +10,7 @@ import { useAppStore } from "@/lib/store";
 
 export default function RegisterPage() {
   const router = useRouter();
-  const { setUser } = useAppStore();
+  const { setUser, setToken } = useAppStore();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [confirm, setConfirm] = useState("");
@@ -28,6 +28,7 @@ export default function RegisterPage() {
     try {
       const user = await registerUser(email, password);
       setUser(user);
+      if (user.token) setToken(user.token);
       router.push("/");
     } catch (err: any) {
       setError(err.message || "Registration failed");

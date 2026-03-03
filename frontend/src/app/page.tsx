@@ -16,7 +16,7 @@ export default function HomePage() {
   const [isUploading, setIsUploading] = useState(false);
   const [conversionStatus, setConversionStatus] = useState<ConversionStatus | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const { setJobId, user, setUser } = useAppStore();
+  const { setJobId, user, setUser, token } = useAppStore();
 
   const handleRetry = useCallback(() => {
     setConversionStatus(null);
@@ -29,7 +29,7 @@ export default function HomePage() {
       setIsUploading(true);
       setError(null);
       try {
-        const { job_id } = await uploadPdf(file);
+        const { job_id } = await uploadPdf(file, token);
         setJobId(job_id);
         setIsUploading(false);
 

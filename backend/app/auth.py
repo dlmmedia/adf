@@ -33,6 +33,7 @@ class LoginRequest(BaseModel):
 class UserResponse(BaseModel):
     id: str
     email: str
+    token: str = ""
 
 
 def hash_password(password: str) -> str:
@@ -72,10 +73,21 @@ def clear_token_cookie(response: Response) -> None:
     response.delete_cookie(key=COOKIE_NAME, path="/", samesite="none", secure=True)
 
 
+def _extract_token(request: Request) -> str | None:
+    """Get token from cookie or Authorization header."""
+    token = request.cookies.get(COOKIE_NAME)
+    if token:
+        return token
+    auth = request.headers.get("authorization", "")
+    if auth.lower().startswith("bearer "):
+        return auth[7:]
+    return None
+
+
 async def get_current_user(
     request: Request, db: Session = Depends(get_db)
 ) -> User:
-    token = request.cookies.get(COOKIE_NAME)
+    token = _extract_token(request)
     if not token:
         raise HTTPException(status_code=401, detail="Not authenticated")
     user_id = decode_token(token)

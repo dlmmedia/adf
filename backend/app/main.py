@@ -151,7 +151,7 @@ async def api_register(body: RegisterRequest, response: Response, db: Session = 
     user = register_user(db, body.email, body.password)
     token = create_access_token(user.id)
     set_token_cookie(response, token)
-    return UserResponse(id=user.id, email=user.email)
+    return UserResponse(id=user.id, email=user.email, token=token)
 
 
 @app.post("/api/auth/login")
@@ -159,7 +159,7 @@ async def api_login(body: LoginRequest, response: Response, db: Session = Depend
     user = authenticate_user(db, body.email, body.password)
     token = create_access_token(user.id)
     set_token_cookie(response, token)
-    return UserResponse(id=user.id, email=user.email)
+    return UserResponse(id=user.id, email=user.email, token=token)
 
 
 @app.get("/api/auth/me")

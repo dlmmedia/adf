@@ -4,6 +4,7 @@ import type { AuthUser } from "./auth";
 
 interface AppState {
   user: AuthUser | null;
+  token: string | null;
   jobId: string | null;
   conversionStatus: ConversionStatus | null;
   document: DocumentData | null;
@@ -12,6 +13,7 @@ interface AppState {
   agentPanelOpen: boolean;
 
   setUser: (user: AuthUser | null) => void;
+  setToken: (token: string | null) => void;
   setJobId: (id: string) => void;
   setConversionStatus: (status: ConversionStatus) => void;
   setDocument: (doc: DocumentData) => void;
@@ -23,6 +25,7 @@ interface AppState {
 
 export const useAppStore = create<AppState>((set) => ({
   user: null,
+  token: null,
   jobId: null,
   conversionStatus: null,
   document: null,
@@ -31,6 +34,7 @@ export const useAppStore = create<AppState>((set) => ({
   agentPanelOpen: true,
 
   setUser: (user) => set({ user }),
+  setToken: (token) => set({ token }),
   setJobId: (id) => set({ jobId: id }),
   setConversionStatus: (status) => set({ conversionStatus: status }),
   setDocument: (doc) => set({ document: doc }),

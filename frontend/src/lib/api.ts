@@ -1,4 +1,5 @@
-const API_BASE = process.env.NEXT_PUBLIC_API_URL || "";
+const API_BASE = "";
+const UPLOAD_BASE = "https://adf-backend-production.up.railway.app";
 
 export interface ConversionStatus {
   job_id: string;
@@ -75,15 +76,25 @@ export interface DocumentData {
   benchmarks: BenchmarkData;
 }
 
-export async function uploadPdf(file: File): Promise<{ job_id: string }> {
+export async function uploadPdf(file: File, token?: string | null): Promise<{ job_id: string }> {
   const formData = new FormData();
   formData.append("file", file);
-  const res = await fetch(`${API_BASE}/api/convert`, {
+
+  const headers: Record<string, string> = {};
+  if (token) {
+    headers["Authorization"] = `Bearer ${token}`;
+  }
+
+  const res = await fetch(`${UPLOAD_BASE}/api/convert`, {
     method: "POST",
     body: formData,
+    headers,
     credentials: "include",
   });
-  if (!res.ok) throw new Error("Upload failed");
+  if (!res.ok) {
+    const detail = await res.json().catch(() => ({}));
+    throw new Error(detail.detail || `Upload failed (${res.status})`);
+  }
   return res.json();
 }
 

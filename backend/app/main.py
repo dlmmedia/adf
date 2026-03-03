@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import asyncio
+import logging
 import time
 import uuid
 from pathlib import Path
@@ -13,7 +14,7 @@ from fastapi.responses import FileResponse, StreamingResponse
 from sqlalchemy.orm import Session
 
 from app.config import settings
-from app.converter.extractor import extract_blocks, extract_full_text, get_page_count
+from app.converter.extractor import extract_pdf
 from app.converter.structure import detect_structure
 from app.converter.enrichment import enrich
 from app.converter.embeddings import generate_embeddings
@@ -32,6 +33,8 @@ from app.auth import (
     get_current_user,
 )
 
+logger = logging.getLogger(__name__)
+
 app = FastAPI(title="ADF Converter API", version="0.2.0")
 
 app.add_middleware(
@@ -45,6 +48,7 @@ app.add_middleware(
 jobs: dict[str, ConversionStatus] = {}
 job_results: dict[str, dict] = {}
 job_owners: dict[str, str] = {}
+_background_tasks: set[asyncio.Task] = set()
 
 
 def _update_job(job_id: str, **kwargs):
@@ -56,18 +60,20 @@ def _update_job(job_id: str, **kwargs):
 async def _run_conversion(job_id: str, pdf_path: Path):
     """Execute the full conversion pipeline, updating status at each step."""
     t_start = time.perf_counter()
+    loop = asyncio.get_running_loop()
 
     try:
         _update_job(job_id, status="processing", step="extraction", progress=0.1, message="Extracting text from PDF...")
         t0 = time.perf_counter()
-        blocks = extract_blocks(str(pdf_path))
-        full_text = extract_full_text(str(pdf_path))
-        page_count = get_page_count(str(pdf_path))
+        extraction = await loop.run_in_executor(None, extract_pdf, str(pdf_path))
+        blocks = extraction.blocks
+        full_text = extraction.full_text
+        page_count = extraction.page_count
         extraction_ms = (time.perf_counter() - t0) * 1000
 
         _update_job(job_id, step="structure", progress=0.3, message="Detecting document structure...")
         t0 = time.perf_counter()
-        semantic = detect_structure(blocks)
+        semantic = await loop.run_in_executor(None, detect_structure, blocks)
         structure_ms = (time.perf_counter() - t0) * 1000
         _update_job(job_id, sections_detected=len(semantic.sections), progress=0.4)
 
@@ -105,14 +111,17 @@ async def _run_conversion(job_id: str, pdf_path: Path):
 
         _update_job(job_id, step="packaging", progress=0.9, message="Packaging ADF container...")
         adf_path = settings.output_dir / f"{job_id}.adf"
-        package_adf(
-            output_path=adf_path,
-            pdf_path=pdf_path,
-            semantic=semantic,
-            agent_meta=agent_meta,
-            graph=graph,
-            benchmarks=benchmarks,
-            embeddings_bin=embeddings_bin,
+        await loop.run_in_executor(
+            None,
+            lambda: package_adf(
+                output_path=adf_path,
+                pdf_path=pdf_path,
+                semantic=semantic,
+                agent_meta=agent_meta,
+                graph=graph,
+                benchmarks=benchmarks,
+                embeddings_bin=embeddings_bin,
+            ),
         )
 
         job_results[job_id] = {
@@ -127,6 +136,7 @@ async def _run_conversion(job_id: str, pdf_path: Path):
         _update_job(job_id, status="completed", step="done", progress=1.0, message="Conversion complete!")
 
     except Exception as e:
+        logger.exception("Conversion failed for job %s", job_id)
         _update_job(job_id, status="failed", step="error", message=f"Conversion failed: {str(e)}")
 
 
@@ -176,7 +186,9 @@ async def convert_pdf(file: UploadFile = File(...), user: User = Depends(get_cur
     jobs[job_id] = ConversionStatus(job_id=job_id, status="queued", message="Upload received")
     job_owners[job_id] = user.id
 
-    asyncio.create_task(_run_conversion(job_id, pdf_path))
+    task = asyncio.create_task(_run_conversion(job_id, pdf_path))
+    _background_tasks.add(task)
+    task.add_done_callback(_background_tasks.discard)
 
     return {"job_id": job_id, "status": "queued"}
 
@@ -190,20 +202,29 @@ async def stream_status(job_id: str, user: User = Depends(get_current_user)):
         raise HTTPException(status_code=403, detail="Access denied")
 
     async def event_stream():
-        last_progress = -1.0
+        last_data = ""
         while True:
             job = jobs.get(job_id)
             if not job:
                 break
-            if job.progress != last_progress or job.status in ("completed", "failed"):
-                data = job.model_dump_json()
+            data = job.model_dump_json()
+            if data != last_data:
                 yield f"data: {data}\n\n"
-                last_progress = job.progress
+                last_data = data
+            else:
+                yield ": heartbeat\n\n"
             if job.status in ("completed", "failed"):
                 break
-            await asyncio.sleep(0.3)
+            await asyncio.sleep(0.5)
 
-    return StreamingResponse(event_stream(), media_type="text/event-stream")
+    return StreamingResponse(
+        event_stream(),
+        media_type="text/event-stream",
+        headers={
+            "Cache-Control": "no-cache",
+            "X-Accel-Buffering": "no",
+        },
+    )
 
 
 @app.get("/api/doc/{job_id}")

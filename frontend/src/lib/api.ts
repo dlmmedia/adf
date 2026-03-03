@@ -93,23 +93,79 @@ export function streamStatus(
   onDone: () => void,
   onError: (err: string) => void
 ): () => void {
-  const eventSource = new EventSource(`${API_BASE}/api/status/${jobId}`, {
-    withCredentials: true,
-  });
-  eventSource.onmessage = (event) => {
-    const data: ConversionStatus = JSON.parse(event.data);
-    onUpdate(data);
-    if (data.status === "completed" || data.status === "failed") {
-      eventSource.close();
-      if (data.status === "completed") onDone();
-      else onError(data.message);
+  let closed = false;
+  let retries = 0;
+  const MAX_RETRIES = 5;
+  let es: EventSource | null = null;
+
+  function connect() {
+    if (closed) return;
+    es = new EventSource(`${API_BASE}/api/status/${jobId}`, {
+      withCredentials: true,
+    });
+    es.onmessage = (event) => {
+      retries = 0;
+      try {
+        const data: ConversionStatus = JSON.parse(event.data);
+        onUpdate(data);
+        if (data.status === "completed" || data.status === "failed") {
+          cleanup();
+          if (data.status === "completed") onDone();
+          else onError(data.message);
+        }
+      } catch {
+        // ignore parse errors from heartbeat comments
+      }
+    };
+    es.onerror = () => {
+      es?.close();
+      if (closed) return;
+      if (retries < MAX_RETRIES) {
+        retries++;
+        setTimeout(connect, 1000 * retries);
+      } else {
+        pollFallback();
+      }
+    };
+  }
+
+  async function pollFallback() {
+    while (!closed) {
+      try {
+        const res = await fetch(`${API_BASE}/api/status/${jobId}`, {
+          credentials: "include",
+          headers: { Accept: "application/json" },
+        });
+        if (!res.ok) {
+          await new Promise((r) => setTimeout(r, 2000));
+          continue;
+        }
+        const text = await res.text();
+        const lines = text.split("\n").filter((l) => l.startsWith("data: "));
+        for (const line of lines) {
+          const data: ConversionStatus = JSON.parse(line.slice(6));
+          onUpdate(data);
+          if (data.status === "completed" || data.status === "failed") {
+            closed = true;
+            if (data.status === "completed") onDone();
+            else onError(data.message);
+            return;
+          }
+        }
+      } catch {
+        // ignore, retry
+      }
+      await new Promise((r) => setTimeout(r, 2000));
     }
-  };
-  eventSource.onerror = () => {
-    eventSource.close();
-    onError("Connection lost");
-  };
-  return () => eventSource.close();
+  }
+
+  function cleanup() {
+    closed = true;
+    es?.close();
+  }
+
+  connect();
+  return cleanup;
 }
 
 export async function fetchDocument(jobId: string): Promise<DocumentData> {

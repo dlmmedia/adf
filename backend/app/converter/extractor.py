@@ -2,18 +2,32 @@
 
 from __future__ import annotations
 
+from dataclasses import dataclass
+
 import fitz  # PyMuPDF
 
 from app.models import PageBlock
 
 
-def extract_blocks(pdf_path: str) -> list[PageBlock]:
-    """Extract text blocks from a PDF with positional and font metadata."""
-    blocks: list[PageBlock] = []
-    doc = fitz.open(pdf_path)
+@dataclass
+class ExtractionResult:
+    blocks: list[PageBlock]
+    full_text: str
+    page_count: int
 
-    for page_num in range(len(doc)):
+
+def extract_pdf(pdf_path: str) -> ExtractionResult:
+    """Extract blocks, full text, and page count in a single pass."""
+    blocks: list[PageBlock] = []
+    text_parts: list[str] = []
+    doc = fitz.open(pdf_path)
+    page_count = len(doc)
+
+    for page_num in range(page_count):
         page = doc[page_num]
+
+        text_parts.append(page.get_text())
+
         block_dicts = page.get_text("dict", flags=fitz.TEXT_PRESERVE_WHITESPACE)
 
         for block in block_dicts.get("blocks", []):
@@ -54,21 +68,5 @@ def extract_blocks(pdf_path: str) -> list[PageBlock]:
                 )
 
     doc.close()
-    return blocks
-
-
-def extract_full_text(pdf_path: str) -> str:
-    """Extract plain text from a PDF."""
-    doc = fitz.open(pdf_path)
-    text = ""
-    for page in doc:
-        text += page.get_text() + "\n"
-    doc.close()
-    return text.strip()
-
-
-def get_page_count(pdf_path: str) -> int:
-    doc = fitz.open(pdf_path)
-    count = len(doc)
-    doc.close()
-    return count
+    full_text = "\n".join(text_parts).strip()
+    return ExtractionResult(blocks=blocks, full_text=full_text, page_count=page_count)

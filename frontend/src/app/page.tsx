@@ -15,11 +15,19 @@ export default function HomePage() {
   const router = useRouter();
   const [isUploading, setIsUploading] = useState(false);
   const [conversionStatus, setConversionStatus] = useState<ConversionStatus | null>(null);
+  const [error, setError] = useState<string | null>(null);
   const { setJobId, user, setUser } = useAppStore();
+
+  const handleRetry = useCallback(() => {
+    setConversionStatus(null);
+    setError(null);
+    setIsUploading(false);
+  }, []);
 
   const handleFileSelected = useCallback(
     async (file: File) => {
       setIsUploading(true);
+      setError(null);
       try {
         const { job_id } = await uploadPdf(file);
         setJobId(job_id);
@@ -31,11 +39,13 @@ export default function HomePage() {
           () => {
             setTimeout(() => router.push(`/doc/${job_id}`), 800);
           },
-          (err) => console.error(err)
+          (errMsg) => {
+            setError(errMsg || "Conversion failed. Please try again.");
+          }
         );
       } catch (err) {
         setIsUploading(false);
-        console.error("Upload failed:", err);
+        setError(err instanceof Error ? err.message : "Upload failed. Please try again.");
       }
     },
     [router, setJobId]
@@ -166,9 +176,24 @@ export default function HomePage() {
               animate={{ opacity: 1 }}
               className="text-2xl font-semibold text-center mb-8"
             >
-              Converting your document...
+              {error ? "Conversion failed" : "Converting your document..."}
             </motion.h2>
             <ConversionTimeline status={conversionStatus} />
+            {error && (
+              <motion.div
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                className="mt-6 text-center"
+              >
+                <p className="text-red-400 text-sm mb-4">{error}</p>
+                <button
+                  onClick={handleRetry}
+                  className="px-5 py-2 rounded-lg bg-white/10 border border-white/10 text-sm font-medium hover:bg-white/15 transition-colors"
+                >
+                  Try another file
+                </button>
+              </motion.div>
+            )}
           </div>
         )}
       </div>

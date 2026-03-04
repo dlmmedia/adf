@@ -38,3 +38,63 @@ body {
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }
+
+html {
+  scroll-behavior: smooth;
+}
+
+/* Hero glow effect */
+.hero-glow {
+  position: absolute;
+  top: 30%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 800px;
+  height: 500px;
+  background: radial-gradient(
+    ellipse at center,
+    rgba(59, 130, 246, 0.08) 0%,
+    rgba(139, 92, 246, 0.04) 40%,
+    transparent 70%
+  );
+  pointer-events: none;
+  animation: hero-glow-pulse 6s ease-in-out infinite;
+}
+
+@keyframes hero-glow-pulse {
+  0%, 100% { opacity: 0.6; transform: translate(-50%, -50%) scale(1); }
+  50% { opacity: 1; transform: translate(-50%, -50%) scale(1.1); }
+}
+
+/* CTA glow effect */
+.cta-glow {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 600px;
+  height: 400px;
+  background: radial-gradient(
+    ellipse at center,
+    rgba(139, 92, 246, 0.06) 0%,
+    rgba(6, 182, 212, 0.03) 50%,
+    transparent 70%
+  );
+  pointer-events: none;
+  animation: cta-glow-pulse 8s ease-in-out infinite;
+}
+
+@keyframes cta-glow-pulse {
+  0%, 100% { opacity: 0.5; }
+  50% { opacity: 1; }
+}
+
+/* Mind map center node pulse */
+.adf-pulse {
+  animation: adf-pulse-ring 3s ease-in-out infinite;
+}
+
+@keyframes adf-pulse-ring {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(139, 92, 246, 0.15); }
+  50% { box-shadow: 0 0 0 12px rgba(139, 92, 246, 0); }
+}

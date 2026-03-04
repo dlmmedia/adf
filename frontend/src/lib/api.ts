@@ -1,5 +1,4 @@
 const API_BASE = "";
-const UPLOAD_BASE = "https://adf-backend-production.up.railway.app";
 
 export interface ConversionStatus {
   job_id: string;
@@ -85,7 +84,7 @@ export async function uploadPdf(file: File, token?: string | null): Promise<{ jo
     headers["Authorization"] = `Bearer ${token}`;
   }
 
-  const res = await fetch(`${UPLOAD_BASE}/api/convert`, {
+  const res = await fetch(`${API_BASE}/api/convert`, {
     method: "POST",
     body: formData,
     headers,
@@ -102,18 +101,24 @@ export function streamStatus(
   jobId: string,
   onUpdate: (status: ConversionStatus) => void,
   onDone: () => void,
-  onError: (err: string) => void
+  onError: (err: string) => void,
+  token?: string | null
 ): () => void {
   let closed = false;
   let retries = 0;
   const MAX_RETRIES = 5;
+  let pollErrorCount = 0;
+  const MAX_POLL_ERRORS = 10;
   let es: EventSource | null = null;
+
+  const tokenQuery = token ? `?token=${encodeURIComponent(token)}` : "";
 
   function connect() {
     if (closed) return;
-    es = new EventSource(`${API_BASE}/api/status/${jobId}`, {
-      withCredentials: true,
-    });
+    es = new EventSource(
+      `${API_BASE}/api/status/${jobId}${tokenQuery}`,
+      { withCredentials: true }
+    );
     es.onmessage = (event) => {
       retries = 0;
       try {
@@ -125,7 +130,7 @@ export function streamStatus(
           else onError(data.message);
         }
       } catch {
-        // ignore parse errors from heartbeat comments
+        /* ignore parse errors from heartbeat comments */
       }
     };
     es.onerror = () => {
@@ -141,16 +146,26 @@ export function streamStatus(
   }
 
   async function pollFallback() {
+    const headers: Record<string, string> = { Accept: "application/json" };
+    if (token) headers["Authorization"] = `Bearer ${token}`;
+
     while (!closed) {
       try {
         const res = await fetch(`${API_BASE}/api/status/${jobId}`, {
           credentials: "include",
-          headers: { Accept: "application/json" },
+          headers,
         });
         if (!res.ok) {
+          pollErrorCount++;
+          if (pollErrorCount >= MAX_POLL_ERRORS) {
+            closed = true;
+            onError(`Server error (${res.status}). Please try again.`);
+            return;
+          }
           await new Promise((r) => setTimeout(r, 2000));
           continue;
         }
+        pollErrorCount = 0;
         const text = await res.text();
         const lines = text.split("\n").filter((l) => l.startsWith("data: "));
         for (const line of lines) {
@@ -164,7 +179,12 @@ export function streamStatus(
           }
         }
       } catch {
-        // ignore, retry
+        pollErrorCount++;
+        if (pollErrorCount >= MAX_POLL_ERRORS) {
+          closed = true;
+          onError("Connection lost. Please try again.");
+          return;
+        }
       }
       await new Promise((r) => setTimeout(r, 2000));
     }

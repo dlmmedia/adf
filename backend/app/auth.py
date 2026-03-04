@@ -74,13 +74,16 @@ def clear_token_cookie(response: Response) -> None:
 
 
 def _extract_token(request: Request) -> str | None:
-    """Get token from cookie or Authorization header."""
+    """Get token from cookie, Authorization header, or query parameter."""
     token = request.cookies.get(COOKIE_NAME)
     if token:
         return token
     auth = request.headers.get("authorization", "")
     if auth.lower().startswith("bearer "):
         return auth[7:]
+    token = request.query_params.get("token")
+    if token:
+        return token
     return None
 
 

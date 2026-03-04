@@ -115,6 +115,22 @@ export default function HomePage() {
           isUploading={isUploading}
         />
 
+        {error && (
+          <motion.div
+            initial={{ opacity: 0, y: 6 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="mt-4 px-4 py-2.5 rounded-xl bg-red-500/10 border border-red-500/20 text-center max-w-md"
+          >
+            <p className="text-red-400 text-sm">{error}</p>
+            <button
+              onClick={handleRetry}
+              className="mt-2 text-xs text-white/40 hover:text-white/70 underline transition-colors"
+            >
+              Dismiss
+            </button>
+          </motion.div>
+        )}
+
         <motion.div
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}

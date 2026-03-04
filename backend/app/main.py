@@ -1,7 +1,5 @@
 """FastAPI app: PDF → ADF conversion API with SSE progress streaming and auth."""
 
-from __future__ import annotations
-
 import asyncio
 import logging
 import time

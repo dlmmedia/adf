@@ -55,9 +55,12 @@ export default function HomePage() {
         );
       } catch (err) {
         setIsUploading(false);
-        setError(
-          err instanceof Error ? err.message : "Upload failed. Please try again."
-        );
+        const msg = err instanceof Error ? err.message : "Upload failed.";
+        if (msg.includes("Not authenticated") || msg.includes("Invalid or expired token") || msg.includes("User not found")) {
+          router.push("/login");
+          return;
+        }
+        setError(msg);
       }
     },
     [router, setJobId, token]

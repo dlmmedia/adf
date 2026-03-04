@@ -2,7 +2,7 @@
 
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { useState, useEffect, type ReactNode } from "react";
-import { getMe } from "@/lib/auth";
+import { getMe, logoutUser } from "@/lib/auth";
 import { useAppStore } from "@/lib/store";
 
 function AuthLoader({ children }: { children: ReactNode }) {
@@ -10,10 +10,12 @@ function AuthLoader({ children }: { children: ReactNode }) {
   const [checked, setChecked] = useState(false);
 
   useEffect(() => {
-    getMe().then((user) => {
+    getMe().then(async (user) => {
       if (user) {
         setUser(user);
         if (user.token) setToken(user.token);
+      } else {
+        await logoutUser().catch(() => {});
       }
       setChecked(true);
     });

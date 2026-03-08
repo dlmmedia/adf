@@ -1,0 +1,19 @@
+{
+  "$schema": "../gen/schemas/desktop-schema.json",
+  "identifier": "default",
+  "description": "DLM ADF default capabilities",
+  "windows": ["main"],
+  "permissions": [
+    "core:default",
+    "shell:allow-open",
+    "dialog:default",
+    "fs:default",
+    "http:default",
+    "notification:default",
+    "store:default",
+    "opener:default",
+    "updater:default",
+    "process:allow-restart",
+    "process:allow-exit"
+  ]
+}

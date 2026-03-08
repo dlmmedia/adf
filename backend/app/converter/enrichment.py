@@ -110,9 +110,27 @@ def _fallback_enrich(
 
     reading_order = [s.title.lower() for s in semantic.sections[:10]]
 
-    nodes = [GraphNode(id=f"e_{i}", label=e.name, type=e.type) for i, e in enumerate(entities[:10])]
-    doc_node = GraphNode(id="doc", label="Document", type="document")
-    edges = [GraphEdge(source="doc", target=n.id, relationship="contains") for n in nodes]
+    nodes = [
+        GraphNode(
+            id=f"e_{i}",
+            label=e.name,
+            type=e.type,
+            description=f"Keyword '{e.name}' appears {e.mentions} time(s) in the document.",
+            importance=min(1.0, 0.3 + (e.mentions / max(c for _, c in top_words)) * 0.7),
+        )
+        for i, e in enumerate(entities[:10])
+    ]
+    doc_node = GraphNode(
+        id="doc",
+        label="Document",
+        type="document",
+        description="The source document being analyzed.",
+        importance=1.0,
+    )
+    edges = [
+        GraphEdge(source="doc", target=n.id, relationship="contains", weight=n.importance)
+        for n in nodes
+    ]
 
     return (
         AgentMeta(
@@ -238,10 +256,18 @@ async def _build_graph(text: str) -> KnowledgeGraph:
             {
                 "role": "system",
                 "content": (
-                    "Extract a knowledge graph from this document. "
-                    "Return JSON with two keys: "
-                    '"nodes" (array of {id, label, type}) and '
-                    '"edges" (array of {source, target, relationship}). '
+                    "Extract a rich knowledge graph from this document. "
+                    "Return JSON with two keys:\n"
+                    '"nodes" — array of objects with: id (string), label (string), '
+                    "type (one of: document, person, organization, method, dataset, "
+                    "location, concept, technology, keyword), "
+                    "description (1-2 sentence explanation of what this entity is "
+                    "and why it matters in the document), "
+                    "importance (float 0-1, where 1 = central topic, 0.3 = minor mention).\n"
+                    '"edges" — array of objects with: source (node id), target (node id), '
+                    "relationship (descriptive verb phrase like 'developed by', "
+                    "'applies to', 'part of'), "
+                    "weight (float 0-1, where 1 = strong/primary relationship).\n"
                     "Keep it to 10-20 nodes max. "
                     "Return ONLY valid JSON."
                 ),
@@ -249,7 +275,7 @@ async def _build_graph(text: str) -> KnowledgeGraph:
             {"role": "user", "content": _truncate(text, 6000)},
         ],
         temperature=0.3,
-        max_tokens=1500,
+        max_tokens=2500,
     )
     raw = _parse_json_response(resp.choices[0].message.content or "{}")
     if isinstance(raw, dict):

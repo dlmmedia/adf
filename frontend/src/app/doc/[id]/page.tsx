@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { useParams } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
 import {
@@ -10,7 +10,6 @@ import {
   PanelRightOpen,
   Download,
   Eye,
-  Layers,
   GitBranch,
   Brain,
   ArrowLeft,
@@ -20,11 +19,9 @@ import PdfViewer from "@/components/PdfViewer";
 import SemanticViewer from "@/components/SemanticViewer";
 import AgentPanel from "@/components/AgentPanel";
 import GraphExplorer from "@/components/GraphExplorer";
-import { fetchDocument, getPdfUrl, getDownloadUrl, type DocumentData } from "@/lib/api";
+import { fetchDocument, getPdfUrl, getDownloadUrl, type DocumentData, type Section } from "@/lib/api";
 import { useAppStore } from "@/lib/store";
 import { cn } from "@/lib/utils";
-
-type Tab = "viewer" | "graph";
 
 export default function DocumentPage() {
   const params = useParams();
@@ -32,10 +29,18 @@ export default function DocumentPage() {
   const [doc, setDoc] = useState<DocumentData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [activeTab, setActiveTab] = useState<Tab>("viewer");
+  const [targetPage, setTargetPage] = useState<number | null>(null);
 
-  const { sidebarOpen, agentPanelOpen, toggleSidebar, toggleAgentPanel, viewMode, setViewMode } =
-    useAppStore();
+  const {
+    sidebarOpen,
+    agentPanelOpen,
+    toggleSidebar,
+    toggleAgentPanel,
+    viewMode,
+    setViewMode,
+    activeTab,
+    setActiveTab,
+  } = useAppStore();
 
   useEffect(() => {
     let retries = 0;
@@ -59,6 +64,12 @@ export default function DocumentPage() {
 
     load();
   }, [jobId]);
+
+  const handleSectionClick = useCallback((section: Section) => {
+    if (section.page > 0) {
+      setTargetPage(section.page);
+    }
+  }, []);
 
   if (loading) {
     return (
@@ -111,7 +122,6 @@ export default function DocumentPage() {
         </div>
 
         <div className="flex items-center gap-2">
-          {/* View mode tabs */}
           <div className="flex items-center bg-white/[0.03] rounded-lg border border-white/5 p-0.5">
             <TabButton
               active={activeTab === "viewer"}
@@ -175,7 +185,10 @@ export default function DocumentPage() {
               transition={{ duration: 0.2 }}
               className="border-r border-white/5 overflow-hidden shrink-0"
             >
-              <SemanticViewer sections={doc.semantic.sections} />
+              <SemanticViewer
+                sections={doc.semantic.sections}
+                onSectionClick={handleSectionClick}
+              />
             </motion.div>
           )}
         </AnimatePresence>
@@ -185,7 +198,7 @@ export default function DocumentPage() {
           {activeTab === "viewer" ? (
             <>
               {viewMode === "visual" && (
-                <PdfViewer pdfUrl={getPdfUrl(jobId)} />
+                <PdfViewer pdfUrl={getPdfUrl(jobId)} goToPage={targetPage} />
               )}
               {viewMode === "semantic" && (
                 <div className="h-full overflow-y-auto p-8">
@@ -221,7 +234,7 @@ export default function DocumentPage() {
               {viewMode === "hybrid" && (
                 <div className="h-full flex">
                   <div className="flex-1">
-                    <PdfViewer pdfUrl={getPdfUrl(jobId)} />
+                    <PdfViewer pdfUrl={getPdfUrl(jobId)} goToPage={targetPage} />
                   </div>
                   <div className="w-80 border-l border-white/5 overflow-y-auto p-6">
                     <h3 className="text-sm font-semibold text-white/60 uppercase tracking-wider mb-4">

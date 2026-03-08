@@ -7,9 +7,10 @@ import { cn } from "@/lib/utils";
 interface PdfViewerProps {
   pdfUrl: string;
   className?: string;
+  goToPage?: number | null;
 }
 
-export default function PdfViewer({ pdfUrl, className }: PdfViewerProps) {
+export default function PdfViewer({ pdfUrl, className, goToPage }: PdfViewerProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const [pdfDoc, setPdfDoc] = useState<any>(null);
   const [currentPage, setCurrentPage] = useState(1);
@@ -90,6 +91,14 @@ export default function PdfViewer({ pdfUrl, className }: PdfViewerProps) {
     },
     [renderPage]
   );
+
+  useEffect(() => {
+    if (!goToPage || !containerRef.current) return;
+    const target = containerRef.current.querySelector(`[data-page="${goToPage}"]`);
+    if (target) {
+      target.scrollIntoView({ behavior: "smooth", block: "start" });
+    }
+  }, [goToPage]);
 
   const handleScroll = useCallback(() => {
     if (!containerRef.current) return;

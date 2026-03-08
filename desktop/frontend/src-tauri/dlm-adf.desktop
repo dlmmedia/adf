@@ -1,0 +1,9 @@
+[Desktop Entry]
+Name=DLM ADF
+Comment=GenTech Document Management — Agent Document Format
+Exec=dlm-adf %F
+Icon=dlm-adf
+Terminal=false
+Type=Application
+Categories=Office;Viewer;
+MimeType=application/vnd.adf;application/pdf;

@@ -51,12 +51,15 @@ class GraphNode(BaseModel):
     id: str
     label: str
     type: str
+    description: str = ""
+    importance: float = 0.5
 
 
 class GraphEdge(BaseModel):
     source: str
     target: str
     relationship: str
+    weight: float = 0.5
 
 
 class KnowledgeGraph(BaseModel):

@@ -29,12 +29,15 @@ export interface GraphNode {
   id: string;
   label: string;
   type: string;
+  description: string;
+  importance: number;
 }
 
 export interface GraphEdge {
   source: string;
   target: string;
   relationship: string;
+  weight: number;
 }
 
 export interface BenchmarkData {

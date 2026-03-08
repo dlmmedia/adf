@@ -55,5 +55,12 @@ yarn-error.log*
 *.tsbuildinfo
 frontend/next-env.d.ts
 
+# Desktop (Tauri)
+desktop/frontend/node_modules/
+desktop/frontend/dist/
+desktop/frontend/src-tauri/target/
+desktop/frontend/src-tauri/gen/
+desktop/frontend/src-tauri/Cargo.lock
+
 # Misc
 *.pem

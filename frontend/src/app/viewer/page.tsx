@@ -8,7 +8,6 @@ import {
   PanelRightClose,
   PanelRightOpen,
   Eye,
-  Layers,
   GitBranch,
   Brain,
   ArrowLeft,
@@ -22,23 +21,29 @@ import PdfViewer from "@/components/PdfViewer";
 import SemanticViewer from "@/components/SemanticViewer";
 import AgentPanel from "@/components/AgentPanel";
 import GraphExplorer from "@/components/GraphExplorer";
-import { type DocumentData } from "@/lib/api";
+import { type DocumentData, type Section } from "@/lib/api";
 import { loadAdfFile, revokeAdfBlobUrl, type AdfLoadResult } from "@/lib/adf-loader";
+import { useAppStore } from "@/lib/store";
 import { cn } from "@/lib/utils";
-
-type Tab = "viewer" | "graph";
-type ViewMode = "visual" | "semantic" | "hybrid";
 
 export default function ViewerPage() {
   const [result, setResult] = useState<AdfLoadResult | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [activeTab, setActiveTab] = useState<Tab>("viewer");
-  const [viewMode, setViewMode] = useState<ViewMode>("visual");
-  const [sidebarOpen, setSidebarOpen] = useState(true);
-  const [agentPanelOpen, setAgentPanelOpen] = useState(true);
   const [isDragging, setIsDragging] = useState(false);
+  const [targetPage, setTargetPage] = useState<number | null>(null);
   const fileRef = useRef<HTMLInputElement>(null);
+
+  const {
+    sidebarOpen,
+    agentPanelOpen,
+    toggleSidebar,
+    toggleAgentPanel,
+    viewMode,
+    setViewMode,
+    activeTab,
+    setActiveTab,
+  } = useAppStore();
 
   useEffect(() => {
     return () => {
@@ -72,6 +77,12 @@ export default function ViewerPage() {
     },
     [handleFile]
   );
+
+  const handleSectionClick = useCallback((section: Section) => {
+    if (section.page > 0) {
+      setTargetPage(section.page);
+    }
+  }, []);
 
   if (!result) {
     return (
@@ -185,7 +196,7 @@ export default function ViewerPage() {
           </button>
           <div className="w-px h-5 bg-white/10" />
           <button
-            onClick={() => setSidebarOpen(!sidebarOpen)}
+            onClick={toggleSidebar}
             className="p-1.5 rounded-lg hover:bg-white/10 text-white/40 transition-colors"
           >
             {sidebarOpen ? (
@@ -241,7 +252,7 @@ export default function ViewerPage() {
           <div className="w-px h-5 bg-white/10 mx-1" />
 
           <button
-            onClick={() => setAgentPanelOpen(!agentPanelOpen)}
+            onClick={toggleAgentPanel}
             className="p-1.5 rounded-lg hover:bg-white/10 text-white/40 transition-colors"
           >
             {agentPanelOpen ? (
@@ -263,7 +274,10 @@ export default function ViewerPage() {
               transition={{ duration: 0.2 }}
               className="border-r border-white/5 overflow-hidden shrink-0"
             >
-              <SemanticViewer sections={doc.semantic.sections} />
+              <SemanticViewer
+                sections={doc.semantic.sections}
+                onSectionClick={handleSectionClick}
+              />
             </motion.div>
           )}
         </AnimatePresence>
@@ -272,7 +286,7 @@ export default function ViewerPage() {
           {activeTab === "viewer" ? (
             <>
               {viewMode === "visual" && (
-                <PdfViewer pdfUrl={result.pdfBlobUrl} />
+                <PdfViewer pdfUrl={result.pdfBlobUrl} goToPage={targetPage} />
               )}
               {viewMode === "semantic" && (
                 <div className="h-full overflow-y-auto p-8">
@@ -314,7 +328,7 @@ export default function ViewerPage() {
               {viewMode === "hybrid" && (
                 <div className="h-full flex">
                   <div className="flex-1">
-                    <PdfViewer pdfUrl={result.pdfBlobUrl} />
+                    <PdfViewer pdfUrl={result.pdfBlobUrl} goToPage={targetPage} />
                   </div>
                   <div className="w-80 border-l border-white/5 overflow-y-auto p-6">
                     <h3 className="text-sm font-semibold text-white/60 uppercase tracking-wider mb-4">

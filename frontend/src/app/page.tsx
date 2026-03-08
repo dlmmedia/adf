@@ -3,7 +3,7 @@
 import { useState, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { motion } from "framer-motion";
-import { Brain, FileArchive, LogOut } from "lucide-react";
+import { Brain, FileArchive, LogOut, Monitor } from "lucide-react";
 import Link from "next/link";
 import UploadDropzone from "@/components/UploadDropzone";
 import ConversionTimeline from "@/components/ConversionTimeline";
@@ -188,7 +188,23 @@ export default function HomePage() {
       </BottomCta>
 
       {/* Footer */}
-      <footer className="border-t border-white/5 px-8 py-8 text-center">
+      <footer className="border-t border-white/5 px-8 py-8 text-center space-y-3">
+        <div className="flex items-center justify-center gap-6 text-xs text-white/30">
+          <Link href="/download" className="hover:text-white/60 transition-colors">
+            Download Desktop App
+          </Link>
+          <a
+            href="https://github.com/dlmmedia/adf/releases"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="hover:text-white/60 transition-colors"
+          >
+            Releases
+          </a>
+          <Link href="/viewer" className="hover:text-white/60 transition-colors">
+            Open ADF Viewer
+          </Link>
+        </div>
         <p className="text-xs text-white/20">
           Agent Document Format &mdash; Open standard for AI-native documents
         </p>
@@ -237,6 +253,13 @@ function Nav({
         >
           <FileArchive className="w-3.5 h-3.5" />
           Open ADF
+        </Link>
+        <Link
+          href="/download"
+          className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-blue-500/10 border border-blue-500/20 text-blue-400 hover:bg-blue-500/20 transition-colors"
+        >
+          <Monitor className="w-3.5 h-3.5" />
+          Desktop App
         </Link>
         {user && (
           <>

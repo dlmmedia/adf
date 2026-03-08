@@ -85,6 +85,7 @@
     "lint:eslint": "eslint --max-warnings=0",
     "typecheck": "tsc --noEmit --project tsconfig.core.json",
     "check": "npm run typecheck && npm run lint && npm run test:run",
+    "tauri": "tauri",
     "tauri-dev": "tauri dev --no-watch",
     "tauri-build": "tauri build",
     "tauri-clean": "cd src-tauri && cargo clean && cd .. && rm -rf dist build",

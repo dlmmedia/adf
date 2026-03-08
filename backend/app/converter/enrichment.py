@@ -48,9 +48,6 @@ async def enrich(
         return _fallback_enrich(full_text, semantic)
 
     truncated = _truncate(full_text)
-    section_texts = "\n\n".join(
-        f"## {s.title}\n{_truncate(s.content, 2000)}" for s in semantic.sections[:20]
-    )
 
     summary_task = _summarize(truncated)
     section_summary_task = _summarize_sections(semantic.sections)

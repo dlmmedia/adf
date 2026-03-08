@@ -1,4 +1,5 @@
 use tauri::{AppHandle, Emitter, Manager, RunEvent, WindowEvent};
+use tauri_plugin_deep_link::DeepLinkExt;
 use std::sync::Mutex;
 
 mod adf_commands;

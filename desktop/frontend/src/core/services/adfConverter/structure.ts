@@ -3,7 +3,7 @@
  * Port of backend/app/converter/structure.py — detects headings, sections,
  * tables, and references from extracted text blocks.
  */
-import type { PageBlock } from "./extractor";
+import type { PageBlock } from "@app/services/adfConverter/extractor";
 import type { Section, SemanticData } from "@app/types/adf";
 
 function median(values: number[]): number {

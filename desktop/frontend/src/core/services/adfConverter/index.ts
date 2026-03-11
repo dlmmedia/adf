@@ -7,15 +7,15 @@
  *   3. Enrich with metadata (summary, entities, keywords, knowledge graph)
  *   4. Package into a ZIP-based .adf container (JSZip)
  */
-export { extractPdf } from "./extractor";
-export { detectStructure } from "./structure";
-export { enrichLocally } from "./enrichment";
-export { packageAdf } from "./packager";
+export { extractPdf } from "@app/services/adfConverter/extractor";
+export { detectStructure } from "@app/services/adfConverter/structure";
+export { enrichLocally } from "@app/services/adfConverter/enrichment";
+export { packageAdf } from "@app/services/adfConverter/packager";
 
-import { extractPdf } from "./extractor";
-import { detectStructure } from "./structure";
-import { enrichLocally } from "./enrichment";
-import { packageAdf } from "./packager";
+import { extractPdf } from "@app/services/adfConverter/extractor";
+import { detectStructure } from "@app/services/adfConverter/structure";
+import { enrichLocally } from "@app/services/adfConverter/enrichment";
+import { packageAdf } from "@app/services/adfConverter/packager";
 import type { BenchmarkData, SemanticData, AgentMeta, KnowledgeGraph } from "@app/types/adf";
 
 export interface ConversionProgress {

@@ -112,6 +112,5 @@ export function useFileOpenBridge(): void {
     return () => {
       unlistenPromise.then((unlisten) => unlisten());
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 }

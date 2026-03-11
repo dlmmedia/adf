@@ -1,6 +1,6 @@
 import { useAdf } from "@app/contexts/AdfContext";
-import SemanticViewer from "./SemanticViewer";
-import AgentPanel from "./AgentPanel";
+import SemanticViewer from "@app/components/adf/SemanticViewer";
+import AgentPanel from "@app/components/adf/AgentPanel";
 
 export default function AdfSidebarPanel() {
   const { isAdfLoaded, document, activeTab, setActiveTab } = useAdf();

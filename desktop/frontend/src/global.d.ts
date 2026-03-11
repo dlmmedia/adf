@@ -38,4 +38,11 @@ declare module 'posthog-js/react' {
   }>;
 }
 
+declare global {
+  interface Window {
+    gapi: any;
+    google: any;
+  }
+}
+
 export { };

@@ -115,7 +115,7 @@ export const AdminTourOrchestrationProvider: React.FC<{ children: React.ReactNod
   );
 };
 
-const noopAdminAsync = () => {};
+const _noopAdminAsync = () => {};
 const noopAdmin = () => {};
 
 const ADMIN_TOUR_ORCHESTRATION_FALLBACK: AdminTourOrchestrationContextType = {

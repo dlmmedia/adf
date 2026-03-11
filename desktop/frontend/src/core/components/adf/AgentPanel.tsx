@@ -2,7 +2,7 @@ import { useState } from "react";
 import { Icon } from "@iconify/react";
 import type { DocumentData } from "@app/types/adf";
 import { useAdf } from "@app/contexts/AdfContext";
-import IntelligenceScoreCard, { BenchmarkComparison } from "./IntelligenceScoreCard";
+import IntelligenceScoreCard, { BenchmarkComparison } from "@app/components/adf/IntelligenceScoreCard";
 
 interface AgentPanelProps {
   document: DocumentData;

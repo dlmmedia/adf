@@ -18,8 +18,8 @@ import Dagre from "@dagrejs/dagre";
 import { Icon } from "@iconify/react";
 import type { GraphNode as GNode, GraphEdge as GEdge } from "@app/types/adf";
 import { useAdf } from "@app/contexts/AdfContext";
-import GraphNodeCardComponent, { TYPE_COLORS, type GraphNodeData } from "./GraphNodeCard";
-import GraphDetailPanel from "./GraphDetailPanel";
+import GraphNodeCardComponent, { TYPE_COLORS, type GraphNodeData } from "@app/components/adf/GraphNodeCard";
+import GraphDetailPanel from "@app/components/adf/GraphDetailPanel";
 
 const nodeTypes = { custom: GraphNodeCardComponent };
 const NODE_WIDTH = 180;

@@ -1,5 +1,5 @@
 import { Icon } from "@iconify/react";
-import { TYPE_COLORS } from "./GraphNodeCard";
+import { TYPE_COLORS } from "@app/components/adf/GraphNodeCard";
 import type { GraphNode, GraphEdge } from "@app/types/adf";
 
 interface GraphDetailPanelProps {

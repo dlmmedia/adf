@@ -1,7 +1,11 @@
 import axios from "axios";
 import type { ConversionStatus, DocumentData } from "@app/types/adf";
+import { getApiBaseUrl } from "@app/services/apiClientConfig";
 
-const API_BASE = "";
+function getAdfApiBase(): string {
+  const base = getApiBaseUrl();
+  return base === "/" ? "" : base;
+}
 
 export async function uploadPdfForConversion(
   file: File,
@@ -15,7 +19,7 @@ export async function uploadPdfForConversion(
     headers["Authorization"] = `Bearer ${token}`;
   }
 
-  const res = await axios.post(`${API_BASE}/api/convert`, formData, {
+  const res = await axios.post(`${getAdfApiBase()}/api/convert`, formData, {
     headers,
     withCredentials: true,
   });
@@ -40,7 +44,7 @@ export function streamConversionStatus(
 
   function connect() {
     if (closed) return;
-    es = new EventSource(`${API_BASE}/api/status/${jobId}${tokenQuery}`, {
+    es = new EventSource(`${getAdfApiBase()}/api/status/${jobId}${tokenQuery}`, {
       withCredentials: true,
     });
     es.onmessage = (event) => {
@@ -75,7 +79,7 @@ export function streamConversionStatus(
 
     while (!closed) {
       try {
-        const res = await fetch(`${API_BASE}/api/status/${jobId}`, {
+        const res = await fetch(`${getAdfApiBase()}/api/status/${jobId}`, {
           credentials: "include",
           headers,
         });
@@ -124,16 +128,16 @@ export function streamConversionStatus(
 }
 
 export async function fetchDocument(jobId: string): Promise<DocumentData> {
-  const res = await axios.get(`${API_BASE}/api/doc/${jobId}`, {
+  const res = await axios.get(`${getAdfApiBase()}/api/doc/${jobId}`, {
     withCredentials: true,
   });
   return res.data;
 }
 
 export function getDownloadUrl(jobId: string): string {
-  return `${API_BASE}/api/doc/${jobId}/download`;
+  return `${getAdfApiBase()}/api/doc/${jobId}/download`;
 }
 
 export function getPdfUrl(jobId: string): string {
-  return `${API_BASE}/api/doc/${jobId}/pdf`;
+  return `${getAdfApiBase()}/api/doc/${jobId}/pdf`;
 }

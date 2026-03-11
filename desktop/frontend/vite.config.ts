@@ -29,8 +29,14 @@ export default defineConfig(({ mode }) => {
         ignored: ['**/src-tauri/**'],
       },
       proxy: {
+        '/api/v1': {
+          target: env.STIRLING_BACKEND_URL || 'http://localhost:8080',
+          changeOrigin: true,
+          secure: false,
+          xfwd: true,
+        },
         '/api': {
-          target: 'http://localhost:8000',
+          target: env.ADF_BACKEND_URL || 'http://localhost:8000',
           changeOrigin: true,
           secure: false,
           xfwd: true,

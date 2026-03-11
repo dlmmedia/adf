@@ -1,9 +1,12 @@
 import { createContext, useContext, useState, useCallback, type ReactNode } from "react";
 import type { DocumentData, AdfViewMode } from "@app/types/adf";
 import { loadAdfFile, revokeAdfBlobUrl, type AdfLoadResult } from "@app/utils/adf-loader";
+import { convertPdfToAdf, type ConversionProgress } from "@app/services/adfConverter";
 
 interface AdfState {
   isAdfLoaded: boolean;
+  isConverting: boolean;
+  conversionProgress: ConversionProgress | null;
   document: DocumentData | null;
   pdfBlobUrl: string | null;
   fileName: string | null;
@@ -16,6 +19,7 @@ interface AdfState {
 
 interface AdfActions {
   loadAdf: (file: File) => Promise<void>;
+  convertAndLoadPdf: (pdfFile: File) => Promise<void>;
   clearAdf: () => void;
   setViewMode: (mode: AdfViewMode) => void;
   setSelectedNodeId: (id: string | null) => void;
@@ -31,6 +35,8 @@ const AdfContext = createContext<AdfContextType | null>(null);
 export function AdfProvider({ children }: { children: ReactNode }) {
   const [state, setState] = useState<AdfState>({
     isAdfLoaded: false,
+    isConverting: false,
+    conversionProgress: null,
     document: null,
     pdfBlobUrl: null,
     fileName: null,
@@ -49,6 +55,8 @@ export function AdfProvider({ children }: { children: ReactNode }) {
     const result: AdfLoadResult = await loadAdfFile(file);
     setState({
       isAdfLoaded: true,
+      isConverting: false,
+      conversionProgress: null,
       document: result.document,
       pdfBlobUrl: result.pdfBlobUrl,
       fileName: result.fileName,
@@ -60,12 +68,59 @@ export function AdfProvider({ children }: { children: ReactNode }) {
     });
   }, [state.pdfBlobUrl]);
 
+  const convertAndLoadPdf = useCallback(async (pdfFile: File) => {
+    if (state.pdfBlobUrl) {
+      revokeAdfBlobUrl(state.pdfBlobUrl);
+    }
+
+    setState((prev) => ({
+      ...prev,
+      isConverting: true,
+      conversionProgress: null,
+    }));
+
+    try {
+      const result = await convertPdfToAdf(pdfFile, (progress) => {
+        setState((prev) => ({ ...prev, conversionProgress: progress }));
+      });
+
+      const adfFileName = pdfFile.name.replace(/\.pdf$/i, "") + ".adf";
+      const adfFile = new File([result.adfBlob], adfFileName, {
+        type: "application/zip",
+      });
+      const loadResult = await loadAdfFile(adfFile);
+
+      setState({
+        isAdfLoaded: true,
+        isConverting: false,
+        conversionProgress: null,
+        document: loadResult.document,
+        pdfBlobUrl: loadResult.pdfBlobUrl,
+        fileName: loadResult.fileName,
+        viewMode: "pdf",
+        selectedNodeId: null,
+        graphSearchQuery: "",
+        graphTypeFilters: new Set(),
+        activeTab: "viewer",
+      });
+    } catch (err) {
+      console.error("[AdfContext] PDF to ADF conversion failed:", err);
+      setState((prev) => ({
+        ...prev,
+        isConverting: false,
+        conversionProgress: null,
+      }));
+    }
+  }, [state.pdfBlobUrl]);
+
   const clearAdf = useCallback(() => {
     if (state.pdfBlobUrl) {
       revokeAdfBlobUrl(state.pdfBlobUrl);
     }
     setState({
       isAdfLoaded: false,
+      isConverting: false,
+      conversionProgress: null,
       document: null,
       pdfBlobUrl: null,
       fileName: null,
@@ -105,6 +160,7 @@ export function AdfProvider({ children }: { children: ReactNode }) {
   const value: AdfContextType = {
     ...state,
     loadAdf,
+    convertAndLoadPdf,
     clearAdf,
     setViewMode,
     setSelectedNodeId,

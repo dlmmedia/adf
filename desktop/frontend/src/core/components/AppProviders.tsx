@@ -25,6 +25,7 @@ import AppConfigLoader from '@app/components/shared/AppConfigLoader';
 import { RedactionProvider } from "@app/contexts/RedactionContext";
 import { FormFillProvider } from "@app/tools/formFill/FormFillContext";
 import { AdfProvider } from "@app/contexts/AdfContext";
+import { useFileOpenBridge } from "@app/hooks/useFileOpenBridge";
 
 // Component to initialize scarf tracking (must be inside AppConfigProvider)
 function ScarfTrackingInitializer() {
@@ -35,6 +36,12 @@ function ScarfTrackingInitializer() {
 // Component to run app-level initialization (must be inside AppProviders for context access)
 function AppInitializer() {
   useAppInitialization();
+  return null;
+}
+
+// Bridges Tauri file-open events to the React frontend (ADF + PDF files)
+function FileOpenBridgeInitializer() {
+  useFileOpenBridge();
   return null;
 }
 
@@ -123,6 +130,7 @@ export function AppProviders({ children, appConfigRetryOptions, appConfigProvide
                                       <AnnotationProvider>
                                         <RightRailProvider>
                                           <AdfProvider>
+                                          <FileOpenBridgeInitializer />
                                           <TourOrchestrationProvider>
                                             <AdminTourOrchestrationProvider>
                                               {children}

@@ -1,11 +1,11 @@
-import { useState, useCallback } from "react";
+import { useState, useCallback, useRef } from "react";
 import { Icon } from "@iconify/react";
 import { useAdf } from "@app/contexts/AdfContext";
 import { ConversionTimeline } from "@app/components/adf";
-import { uploadPdfForConversion, streamConversionStatus, getDownloadUrl } from "@app/services/adfService";
+import { convertPdfToAdf, type ConversionProgress } from "@app/services/adfConverter";
 import type { ConversionStatus } from "@app/types/adf";
 
-type ConvertState = "idle" | "uploading" | "converting" | "done" | "error";
+type ConvertState = "idle" | "converting" | "done" | "error";
 
 export default function ConvertToAdf() {
   const { loadAdf } = useAdf();
@@ -13,7 +13,8 @@ export default function ConvertToAdf() {
   const [conversionStatus, setConversionStatus] = useState<ConversionStatus | null>(null);
   const [errorMessage, setErrorMessage] = useState<string>("");
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
-  const [jobId, setJobId] = useState<string | null>(null);
+  const [downloadUrl, setDownloadUrl] = useState<string | null>(null);
+  const downloadUrlRef = useRef<string | null>(null);
 
   const handleFileSelect = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -24,42 +25,67 @@ export default function ConvertToAdf() {
     }
   }, []);
 
+  const progressToStatus = (update: ConversionProgress): ConversionStatus => ({
+    job_id: "local",
+    status: update.step === "done" ? "completed" : "processing",
+    step: update.step,
+    progress: update.progress,
+    sections_detected: 0,
+    entities_extracted: 0,
+    confidence: 0,
+    message: update.message,
+  });
+
   const handleConvert = useCallback(async () => {
     if (!selectedFile) return;
 
-    setState("uploading");
+    setState("converting");
     setErrorMessage("");
 
     try {
-      const { job_id } = await uploadPdfForConversion(selectedFile);
-      setJobId(job_id);
-      setState("converting");
+      const result = await convertPdfToAdf(selectedFile, (update) => {
+        setConversionStatus(progressToStatus(update));
+      });
 
-      streamConversionStatus(
-        job_id,
-        (status) => setConversionStatus(status),
-        async () => {
-          setState("done");
-          const downloadUrl = getDownloadUrl(job_id);
-          try {
-            const res = await fetch(downloadUrl, { credentials: "include" });
-            const blob = await res.blob();
-            const adfFile = new File([blob], `${selectedFile.name.replace(/\.pdf$/i, "")}.adf`, { type: "application/zip" });
-            await loadAdf(adfFile);
-          } catch {
-            setState("done");
-          }
-        },
-        (err) => {
-          setState("error");
-          setErrorMessage(err);
-        }
-      );
+      // Update final status with actual data
+      setConversionStatus({
+        job_id: "local",
+        status: "completed",
+        step: "done",
+        progress: 1.0,
+        sections_detected: result.semantic.sections.length,
+        entities_extracted: result.agentMeta.entities.length,
+        confidence: result.agentMeta.confidence,
+        message: "Conversion complete!",
+      });
+
+      // Create download URL
+      if (downloadUrlRef.current) {
+        URL.revokeObjectURL(downloadUrlRef.current);
+      }
+      const blobUrl = URL.createObjectURL(result.adfBlob);
+      downloadUrlRef.current = blobUrl;
+      setDownloadUrl(blobUrl);
+
+      // Load into the ADF viewer
+      const adfFileName = selectedFile.name.replace(/\.pdf$/i, "") + ".adf";
+      const adfFile = new File([result.adfBlob], adfFileName, { type: "application/zip" });
+      await loadAdf(adfFile);
+
+      setState("done");
     } catch (err) {
       setState("error");
-      setErrorMessage(err instanceof Error ? err.message : "Upload failed");
+      setErrorMessage(err instanceof Error ? err.message : "Conversion failed");
     }
   }, [selectedFile, loadAdf]);
+
+  const handleDownload = useCallback(() => {
+    if (!downloadUrl || !selectedFile) return;
+    const a = document.createElement("a");
+    a.href = downloadUrl;
+    a.download = selectedFile.name.replace(/\.pdf$/i, "") + ".adf";
+    a.click();
+  }, [downloadUrl, selectedFile]);
 
   return (
     <div className="p-6 space-y-6">
@@ -69,7 +95,7 @@ export default function ConvertToAdf() {
         </div>
         <div>
           <h2 className="text-lg font-semibold text-white/90">Convert to ADF</h2>
-          <p className="text-sm text-white/50">Transform a document into an Agent Document Format file</p>
+          <p className="text-sm text-white/50">Transform a PDF into an Agent Document Format file</p>
         </div>
       </div>
 
@@ -79,7 +105,7 @@ export default function ConvertToAdf() {
             <input type="file" accept=".pdf" onChange={handleFileSelect} className="hidden" />
             <Icon icon="material-symbols:upload-file-outline" className="w-8 h-8 text-white/30 mx-auto mb-2" />
             <p className="text-sm text-white/50">
-              {selectedFile ? selectedFile.name : "Select a document file to convert"}
+              {selectedFile ? selectedFile.name : "Select a PDF file to convert"}
             </p>
           </label>
 
@@ -95,14 +121,14 @@ export default function ConvertToAdf() {
         </div>
       )}
 
-      {(state === "uploading" || state === "converting") && conversionStatus && (
+      {state === "converting" && conversionStatus && (
         <ConversionTimeline status={conversionStatus} />
       )}
 
-      {state === "uploading" && !conversionStatus && (
+      {state === "converting" && !conversionStatus && (
         <div className="text-center py-8">
           <Icon icon="material-symbols:progress-activity" className="w-8 h-8 text-blue-400 mx-auto mb-3 animate-spin" />
-          <p className="text-sm text-white/60">Uploading document...</p>
+          <p className="text-sm text-white/60">Starting conversion...</p>
         </div>
       )}
 
@@ -111,16 +137,13 @@ export default function ConvertToAdf() {
           <Icon icon="material-symbols:check-circle-outline" className="w-12 h-12 text-green-400 mx-auto mb-3" />
           <p className="text-lg font-semibold text-white/90 mb-1">Conversion Complete</p>
           <p className="text-sm text-white/50">Your ADF file is ready. The viewer has been updated with the new document.</p>
-          {jobId && (
-            <a
-              href={getDownloadUrl(jobId)}
-              download
-              className="inline-flex items-center gap-2 mt-4 px-4 py-2 rounded-lg bg-white/[0.04] border border-white/10 text-sm text-white/70 hover:bg-white/[0.08] transition-colors"
-            >
-              <Icon icon="material-symbols:download" className="w-4 h-4" />
-              Download .adf
-            </a>
-          )}
+          <button
+            onClick={handleDownload}
+            className="inline-flex items-center gap-2 mt-4 px-4 py-2 rounded-lg bg-white/[0.04] border border-white/10 text-sm text-white/70 hover:bg-white/[0.08] transition-colors"
+          >
+            <Icon icon="material-symbols:download" className="w-4 h-4" />
+            Download .adf
+          </button>
         </div>
       )}
 

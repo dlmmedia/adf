@@ -15,9 +15,12 @@ import { useAppConfig } from '@app/contexts/AppConfigContext';
 import { useIsMobile } from '@app/hooks/useIsMobile';
 import MobileUploadModal from '@app/components/shared/MobileUploadModal';
 import { openFilesFromDisk } from '@app/services/openFilesFromDisk';
+import { useAdf } from '@app/contexts/AdfContext';
+import { isAdfFile } from '@app/utils/adf-loader';
 
 const LandingPage = () => {
   const { addFiles } = useFileHandler();
+  const { loadAdf, convertAndLoadPdf } = useAdf();
   const fileInputRef = React.useRef<HTMLInputElement>(null);
   const { colorScheme } = useMantineColorScheme();
   const { t } = useTranslation();
@@ -35,7 +38,28 @@ const LandingPage = () => {
   const isMobile = useIsMobile();
 
   const handleFileDrop = async (files: File[]) => {
-    await addFiles(files);
+    const adfFiles = files.filter((f) => isAdfFile(f.name));
+    const pdfFiles = files.filter(
+      (f) => f.name.toLowerCase().endsWith(".pdf") && !isAdfFile(f.name)
+    );
+    const otherFiles = files.filter(
+      (f) => !isAdfFile(f.name) && !f.name.toLowerCase().endsWith(".pdf")
+    );
+
+    // Load ADF files directly
+    for (const adf of adfFiles) {
+      await loadAdf(adf);
+    }
+
+    // Auto-convert PDFs to ADF
+    for (const pdf of pdfFiles) {
+      await convertAndLoadPdf(pdf);
+    }
+
+    // Everything else goes to the workbench
+    if (otherFiles.length > 0) {
+      await addFiles(otherFiles);
+    }
   };
 
   const handleOpenFilesModal = () => {
@@ -48,16 +72,15 @@ const LandingPage = () => {
       onFallbackOpen: () => fileInputRef.current?.click()
     });
     if (files.length > 0) {
-      await addFiles(files);
+      await handleFileDrop(files);
     }
   };
 
   const handleFileSelect = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(event.target.files || []);
     if (files.length > 0) {
-      await addFiles(files);
+      await handleFileDrop(files);
     }
-    // Reset the input so the same file can be selected again
     event.target.value = '';
   };
 
@@ -67,7 +90,7 @@ const LandingPage = () => {
 
   const handleFilesReceivedFromMobile = async (files: File[]) => {
     if (files.length > 0) {
-      await addFiles(files);
+      await handleFileDrop(files);
     }
   };
 

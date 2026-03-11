@@ -69,7 +69,9 @@ export async function loadAdfFile(file: File): Promise<AdfLoadResult> {
 }
 
 export async function loadAdfFromBytes(bytes: Uint8Array, name: string): Promise<AdfLoadResult> {
-  const file = new File([bytes], name, { type: "application/zip" });
+  const ab = new ArrayBuffer(bytes.byteLength);
+  new Uint8Array(ab).set(bytes);
+  const file = new File([ab], name, { type: "application/zip" });
   return loadAdfFile(file);
 }
 

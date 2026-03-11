@@ -43,10 +43,10 @@ export default function AdfInspector() {
   const handleExport = () => {
     const blob = new Blob([json], { type: "application/json" });
     const url = URL.createObjectURL(blob);
-    const a = document.createElement("a") as unknown as HTMLAnchorElement;
-    (a as HTMLAnchorElement).href = url;
-    (a as HTMLAnchorElement).download = `${activeLayer}.json`;
-    (a as HTMLAnchorElement).click();
+    const a = globalThis.document.createElement("a");
+    a.href = url;
+    a.download = `${activeLayer}.json`;
+    a.click();
     URL.revokeObjectURL(url);
   };
 

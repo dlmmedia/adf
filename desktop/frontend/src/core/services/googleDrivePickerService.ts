@@ -3,6 +3,14 @@
  * Handles Google Drive file picker integration
  */
 
+/* eslint-disable @typescript-eslint/no-explicit-any */
+declare global {
+  interface Window {
+    gapi: any;
+    google: any;
+  }
+}
+
 import { loadScript } from '@app/utils/scriptLoader';
 
 const SCOPES = 'https://www.googleapis.com/auth/drive.readonly';
